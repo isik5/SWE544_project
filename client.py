@@ -16,12 +16,12 @@ class ReadThread (threading.Thread):
         self.screenQueue = screenQueue
 
     def incoming_parser(self, data):
-        ...
+        pass
 
     def run(self):
         while True:
             data = self.csoc.recv(1024)
-            ...
+            pass
 
 class WriteThread (threading.Thread):
     def __init__(self, name, csoc, threadQueue):
@@ -31,11 +31,11 @@ class WriteThread (threading.Thread):
         self.threadQueue = threadQueue
 
     def run(self):
-        ...
+        pass
 
     if self.threadQueue.qsize() > 0:
         queue_message = self.threadQueue.get()
-        ...
+        pass
 
     try:
         self.csoc.send(queue_message)
@@ -101,17 +101,17 @@ class ClientDialog(QDialog):
         self.setLayout(self.vbox)
 
     def cprint(self, data):
-        ...
+        pass
         self.channel.append(data)
 
     def updateChannelWindow(self):
         if self.screenQueue.qsize() > 0:
             queue_message = self.screenQueue.get()
-            ...
-            self.channel.append(...)
+            pass
+            #self.channel.append(...)
 
     def outgoing_parser(self):
-        ...
+        pass
 
     def run(self):
         ''' Run the app and show the main form. '''
