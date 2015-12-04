@@ -33,15 +33,15 @@ class WriteThread (threading.Thread):
     def run(self):
         pass
 
-    if self.threadQueue.qsize() > 0:
-        queue_message = self.threadQueue.get()
-        pass
+        if self.threadQueue.qsize() > 0:
+            queue_message = self.threadQueue.get()
+            pass
 
-    try:
-        self.csoc.send(queue_message)
-    except socket.error:
-        self.csoc.close()
-        break
+        try:
+            self.csoc.send(queue_message)
+        except socket.error:
+            self.csoc.close()
+            #break
 
 class ClientDialog(QDialog):
     ''' An example application for PyQt. Instantiate
@@ -119,13 +119,14 @@ class ClientDialog(QDialog):
         self.qt_app.exec_()
 
 # connect to the server
-s = socket.socket()
-host = "..."
-port = ...
-s.connect((host,port))
-
-sendQueue = ...
-screenQueue = ...
+s = None
+# s = socket.socket()
+# host = "..."
+# port = ...
+# s.connect((host,port))
+#
+sendQueue = Queue.Queue()
+screenQueue = Queue.Queue()
 
 app = ClientDialog(sendQueue, screenQueue)
 
