@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import socket
+import threading
 
 s = socket.socket()
+
 #host = socket.gethostname()
 host = 'localhost'
 
@@ -11,22 +13,38 @@ s.bind((host, port))
 
 s.listen(5)
 
-def parser(csocket, data, state):
-    data = data.strip()
-    if data == None:
-        response = "ERR"
-        csocket.send(response)
-        return 0
-    if data[0:3] == "HEL":
-        csocket.send("SLT")
+class ChatSession (threading.Thread):
+    def __init__(self, name, csoc):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.csoc = csoc
+        #self.nickname = ""
+        #self.threadQueue = threadQueue
+        #self.screenQueue = screenQueue
+
+    def incoming_parser(self, data):
+        if len(data) == 0:
+            return
+
+        if len(data) > 3 and not data[3] == " ":
+            response = "ERR"
+            self.csoc.send(response)
+            return
+        rest = data[4:]
+
+        if data[0:3] == "BYE":
+            self.csoc.close()
+
+    def run(self):
+        while True:
+            data = self.csoc.recv(1024)
+            self.incoming_parser(data)
 
 while True:
-    c, addr = s.accept()
+    csoc, addr = s.accept()
     print 'Got connection from', addr
-    c.send('Thank you for connecting!')
+    csoc.send('Thank you for connecting!')
 
-    while True:
-        data = c.recv(1024)
-        parser(c,data, None)
-
-    c.close()
+    # start thread
+    cs = ChatSession("ChatSession", csoc)
+    cs.start()
