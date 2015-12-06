@@ -4,6 +4,8 @@ import socket
 import threading
 
 s = socket.socket()
+# https://stackoverflow.com/questions/4465959/python-errno-98-address-already-in-use
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 #host = socket.gethostname()
 host = 'localhost'
