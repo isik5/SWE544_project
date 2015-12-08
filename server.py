@@ -24,18 +24,47 @@ class ChatSession (threading.Thread):
         #self.threadQueue = threadQueue
         #self.screenQueue = screenQueue
 
+    def send(self, data):
+        self.csoc.send(data)
+
     def incoming_parser(self, data):
         if len(data) == 0:
             return
 
         if len(data) > 3 and not data[3] == " ":
             response = "ERR"
-            self.csoc.send(response)
+            self.send(response)
             return
         rest = data[4:]
 
-        if data[0:3] == "BYE":
+        if data[0:3] == "USR":
+            nickname = rest
+            # TODO
+            self.send("HEL")
+
+        if data[0:3] == "QUI":
+            self.send("BYE")
             self.csoc.close()
+
+        if data[0:3] == "LSQ":
+            self.send("LSA " + ":".join(self.users))
+
+        # Baglanti testi
+        if data[0:3] == "TIC":
+            self.send("TOC")
+
+        if data[0:3] == "SAY":
+            message = rest
+            print "<nick> " + message
+            # TODO
+            self.send("SOK")
+
+        if data[0:3] == "MSG":
+            # TODO
+            self.send("MOK")
+            #self.send("MNO")
+
+        # TODO: ERL cevap
 
     def run(self):
         while True:
