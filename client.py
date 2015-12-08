@@ -120,11 +120,11 @@ class ClientDialog(QDialog):
 
 # connect to the server
 s = None
-# s = socket.socket()
-# host = "..."
-# port = ...
-# s.connect((host,port))
-#
+s = socket.socket()
+host = sys.argv[1]
+port = int(sys.argv[2])
+s.connect((host,port))
+
 sendQueue = Queue.Queue()
 screenQueue = Queue.Queue()
 
