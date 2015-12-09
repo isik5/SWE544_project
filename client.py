@@ -20,8 +20,8 @@ class ReadThread (threading.Thread):
             return
 
         if len(data) > 3 and not data[3] == " ":
-            response = "ERR"
-            self.send(response)
+            print "Error in server message"
+            print data
             return
         rest = data[4:]
 
@@ -31,6 +31,7 @@ class ReadThread (threading.Thread):
 
         if data[0:3] == "ERL":
             # TODO
+            pass
 
         if data[0:3] == "MSG":
             print "<<nick>> " + rest
@@ -61,17 +62,15 @@ class WriteThread (threading.Thread):
         self.threadQueue = threadQueue
 
     def run(self):
-        pass
-
-        if self.threadQueue.qsize() > 0:
+        while True:
             queue_message = self.threadQueue.get()
-            pass
-
-        try:
-            self.csoc.send(queue_message)
-        except socket.error:
-            self.csoc.close()
-            #break
+            print queue_message
+            #try:
+            sent = self.csoc.send(queue_message + "\n")
+            print sent
+            #except socket.error:
+            #    self.csoc.close()
+            #    break
 
 class ClientDialog(QDialog):
     ''' An example application for PyQt. Instantiate
@@ -141,7 +140,22 @@ class ClientDialog(QDialog):
             #self.channel.append(...)
 
     def outgoing_parser(self):
-        pass
+        data = self.sender.text()
+        if len(data) == 0:
+            return
+        if data[0] == "/":
+            command = data[1:]
+            if command == "list":
+                pass
+            elif command == "quit":
+                pass
+            elif command == "msg":
+                pass
+            else:
+                self.cprint("Local: Command Error.")
+        else:
+            self.threadQueue.put("SAY " + data)
+        self.sender.clear()
 
     def run(self):
         ''' Run the app and show the main form. '''
