@@ -154,7 +154,7 @@ class ClientDialog(QDialog):
             else:
                 self.cprint("Local: Command Error.")
         else:
-            self.threadQueue.put("SAY " + data)
+            self.threadQueue.put(str("SAY " + data))
         self.sender.clear()
 
     def run(self):
