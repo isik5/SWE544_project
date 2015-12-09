@@ -16,12 +16,42 @@ class ReadThread (threading.Thread):
         self.screenQueue = screenQueue
 
     def incoming_parser(self, data):
-        pass
+        if len(data) == 0:
+            return
+
+        if len(data) > 3 and not data[3] == " ":
+            response = "ERR"
+            self.send(response)
+            return
+        rest = data[4:]
+
+        if data[0:3] == "BYE":
+            # TODO
+            self.csoc.close()
+
+        if data[0:3] == "ERL":
+            # TODO
+
+        if data[0:3] == "MSG":
+            print "<<nick>> " + rest
+
+        if data[0:3] == "SAY":
+            print "<nick> " + rest
+
+        if data[0:3] == "LSA":
+            splitted = rest.split(":")
+            msg = "-Server- Registered nicks: "
+            for i in splitted:
+                msg += i + ","
+                msg = msg[:-1]
+            # TODO
+            #self.app.cprint(msg)
+            print msg
 
     def run(self):
         while True:
             data = self.csoc.recv(1024)
-            pass
+            self.incoming_parser(data)
 
 class WriteThread (threading.Thread):
     def __init__(self, name, csoc, threadQueue):
