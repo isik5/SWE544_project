@@ -58,6 +58,7 @@ class ChatSession (threading.Thread):
             print "<nick> " + message
             # TODO
             self.send("SOK")
+            self.send(data)
 
         if data[0:3] == "MSG":
             # TODO
