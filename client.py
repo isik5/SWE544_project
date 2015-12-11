@@ -15,6 +15,11 @@ class ReadThread (threading.Thread):
         self.threadQueue = threadQueue
         self.screenQueue = screenQueue
 
+    def show(self, data):
+        screenQueue.put(data)
+    def showInfo(self, data):
+        self.show("-Server- " + data)
+
     def incoming_parser(self, data):
         if len(data) == 0:
             return
@@ -25,30 +30,34 @@ class ReadThread (threading.Thread):
             return
         rest = data[4:]
 
+        if data[0:3] == "HEL":
+            self.nickname = rest
+            self.showInfo("Registered as " + self.nickname)
+
         if data[0:3] == "BYE":
             # TODO
             self.csoc.close()
             return True
 
         if data[0:3] == "ERL":
-            # TODO
+            self.showInfo("Error: Must register nick first")
             pass
 
         if data[0:3] == "MSG":
+            # TODO
             print "<<nick>> " + rest
 
         if data[0:3] == "SAY":
-            print "<nick> " + rest
-            screenQueue.put(rest)
+            self.show(rest)
 
         if data[0:3] == "LSA":
             splitted = rest.split(":")
-            msg = "-Server- Registered nicks: "
+            msg = "Registered nicks: "
             for i in splitted:
                 msg += i + ","
                 msg = msg[:-1]
             # TODO
-            screenQueue.put(msg)
+            self.showInfo(msg)
             #self.app.cprint(msg)
             print msg
 
@@ -77,7 +86,8 @@ class WriteThread (threading.Thread):
             if queue_message == None:
                 break
             try:
-                sent = self.csoc.send(queue_message + "\n")
+                # TODO: Send newline
+                sent = self.csoc.send(queue_message)
                 print sent
             except socket.error:
                 self.csoc.close()
@@ -135,7 +145,7 @@ class ClientDialog(QDialog):
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateChannelWindow)
         # update every 10 ms
-        self.timer.start(10)
+        self.timer.start(1000)
 
         # Use the vertical layout for the current window
         self.setLayout(self.vbox)
@@ -152,16 +162,20 @@ class ClientDialog(QDialog):
 
     def outgoing_parser(self):
         data = self.sender.text()
+        data = str(data)
         if len(data) == 0:
             return
         if data[0] == "/":
-            command = data[1:]
-            if command == "list":
+            command, rest = data[1:].split(None, 1)
+            if command == "nick":
+                self.threadQueue.put(str("USR " + rest))
+            elif command == "list":
                 pass
             elif command == "quit":
                 pass
             elif command == "msg":
-                pass
+                dest, msg = rest.split(None, 1)
+                self.threadQueue.put(str("MSG " + ":".join((dest, msg))))
             else:
                 self.cprint("Local: Command Error.")
         else:

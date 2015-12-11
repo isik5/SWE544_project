@@ -20,7 +20,7 @@ class ChatSession (threading.Thread):
         threading.Thread.__init__(self)
         self.name = name
         self.csoc = csoc
-        #self.nickname = ""
+        self.nickname = ""
         #self.threadQueue = threadQueue
         #self.screenQueue = screenQueue
 
@@ -29,7 +29,8 @@ class ChatSession (threading.Thread):
 
     def incoming_parser(self, data):
         if len(data) == 0:
-            return
+            self.csoc.close()
+            return True
 
         if len(data) > 3 and not data[3] == " ":
             response = "ERR"
@@ -38,39 +39,46 @@ class ChatSession (threading.Thread):
         rest = data[4:]
 
         if data[0:3] == "USR":
-            nickname = rest
-            # TODO
-            self.send("HEL")
+            self.nickname = rest
+            # TODO: Check/REJ
+            self.send("HEL " + self.nickname)
 
         if data[0:3] == "QUI":
             self.send("BYE")
             self.csoc.close()
-
-        if data[0:3] == "LSQ":
-            self.send("LSA " + ":".join(self.users))
+            return True
 
         # Baglanti testi
         if data[0:3] == "TIC":
             self.send("TOC")
 
+        if self.nickname == "":
+            self.send("ERL")
+            return
+
+        if data[0:3] == "LSQ":
+            self.send("LSA " + ":".join(self.users))
+
         if data[0:3] == "SAY":
             message = rest
-            print "<nick> " + message
+            print "<" + self.nickname + "> " + message
             # TODO
             self.send("SOK")
-            self.send(data)
+            self.send("SAY " + "<" + self.nickname + "> " + message)
 
         if data[0:3] == "MSG":
+            dest, msg = rest.split(":", 1)
+            print "message: " + dest + " " + msg
             # TODO
             self.send("MOK")
             #self.send("MNO")
 
-        # TODO: ERL cevap
-
     def run(self):
         while True:
             data = self.csoc.recv(1024)
-            self.incoming_parser(data)
+            if self.incoming_parser(data):
+                break
+        print "client disconnected"
 
 while True:
     csoc, addr = s.accept()
