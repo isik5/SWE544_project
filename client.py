@@ -28,6 +28,7 @@ class ReadThread (threading.Thread):
         if data[0:3] == "BYE":
             # TODO
             self.csoc.close()
+            return True
 
         if data[0:3] == "ERL":
             # TODO
@@ -38,6 +39,7 @@ class ReadThread (threading.Thread):
 
         if data[0:3] == "SAY":
             print "<nick> " + rest
+            screenQueue.put(rest)
 
         if data[0:3] == "LSA":
             splitted = rest.split(":")
@@ -46,13 +48,20 @@ class ReadThread (threading.Thread):
                 msg += i + ","
                 msg = msg[:-1]
             # TODO
+            screenQueue.put(msg)
             #self.app.cprint(msg)
             print msg
 
     def run(self):
         while True:
-            data = self.csoc.recv(1024)
-            self.incoming_parser(data)
+            try:
+                data = self.csoc.recv(1024)
+                if self.incoming_parser(data):
+                    break
+            except socket.error:
+                # TODO: Report error?
+                self.csoc.close()
+                break
 
 class WriteThread (threading.Thread):
     def __init__(self, name, csoc, threadQueue):
@@ -65,12 +74,14 @@ class WriteThread (threading.Thread):
         while True:
             queue_message = self.threadQueue.get()
             print queue_message
-            #try:
-            sent = self.csoc.send(queue_message + "\n")
-            print sent
-            #except socket.error:
-            #    self.csoc.close()
-            #    break
+            if queue_message == None:
+                break
+            try:
+                sent = self.csoc.send(queue_message + "\n")
+                print sent
+            except socket.error:
+                self.csoc.close()
+                break
 
 class ClientDialog(QDialog):
     ''' An example application for PyQt. Instantiate
@@ -130,14 +141,14 @@ class ClientDialog(QDialog):
         self.setLayout(self.vbox)
 
     def cprint(self, data):
-        pass
+        # TODO
         self.channel.append(data)
 
     def updateChannelWindow(self):
         if self.screenQueue.qsize() > 0:
             queue_message = self.screenQueue.get()
-            pass
-            #self.channel.append(...)
+            # TODO
+            self.channel.append(queue_message)
 
     def outgoing_parser(self):
         data = self.sender.text()
@@ -183,6 +194,8 @@ wt.start()
 
 app.run()
 
-rt.join()
+sendQueue.put("QUI")
+sendQueue.put(None)
 wt.join()
 s.close()
+rt.join()
