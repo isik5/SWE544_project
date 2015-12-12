@@ -36,8 +36,8 @@ class ChatSession (threading.Thread):
 
         if len(data) > 3 and not data[3] == " ":
             response = "ERR"
-            self.send(response)
-            return
+            return self.send(response)
+
         rest = data[4:]
 
         if data[0:3] == "USR":
@@ -46,7 +46,7 @@ class ChatSession (threading.Thread):
                 del sessions[self.nickname]
             self.nickname = rest
             sessions[self.nickname] = self
-            self.send("HEL " + self.nickname)
+            return self.send("HEL " + self.nickname)
 
         if data[0:3] == "QUI":
             self.send("BYE")
@@ -55,14 +55,14 @@ class ChatSession (threading.Thread):
 
         # Baglanti testi
         if data[0:3] == "TIC":
-            self.send("TOC")
+            return self.send("TOC")
 
+        # All remaining commands require us to be registered.
         if self.nickname == "":
-            self.send("ERL")
-            return
+            return self.send("ERL")
 
         if data[0:3] == "LSQ":
-            self.send("LSA " + ":".join(sessions.keys()))
+            return self.send("LSA " + ":".join(sessions.keys()))
 
         if data[0:3] == "SAY":
             message = rest
@@ -70,17 +70,21 @@ class ChatSession (threading.Thread):
             # TODO: Don't send to self
             for other in sessions.values():
                 other.send("SAY " + "<" + self.nickname + "> " + message)
-            self.send("SOK")
+            return self.send("SOK")
 
         if data[0:3] == "MSG":
+            # TODO: Avoid split error on malformed MSG args
             dest, msg = rest.split(":", 1)
             print "message: " + dest + " " + msg
             other = sessions.get(dest, None)
             if other == None:
-                self.send("MNO")
+                return self.send("MNO")
             else:
                 other.send("MSG " + "*" + self.nickname + "* " + msg)
-                self.send("MOK")
+                return self.send("MOK")
+
+        # Unknown command.
+        return self.send("ERR")
 
     def run(self):
         while True:
