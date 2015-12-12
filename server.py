@@ -15,6 +15,8 @@ s.bind((host, port))
 
 s.listen(5)
 
+sessions = {}
+
 class ChatSession (threading.Thread):
     def __init__(self, name, csoc):
         threading.Thread.__init__(self)
@@ -39,8 +41,11 @@ class ChatSession (threading.Thread):
         rest = data[4:]
 
         if data[0:3] == "USR":
-            self.nickname = rest
             # TODO: Check/REJ
+            if self.nickname != "":
+                del sessions[self.nickname]
+            self.nickname = rest
+            sessions[self.nickname] = self
             self.send("HEL " + self.nickname)
 
         if data[0:3] == "QUI":
@@ -57,27 +62,33 @@ class ChatSession (threading.Thread):
             return
 
         if data[0:3] == "LSQ":
-            self.send("LSA " + ":".join(self.users))
+            self.send("LSA " + ":".join(sessions.keys()))
 
         if data[0:3] == "SAY":
             message = rest
             print "<" + self.nickname + "> " + message
-            # TODO
+            # TODO: Don't send to self
+            for other in sessions.values():
+                other.send("SAY " + "<" + self.nickname + "> " + message)
             self.send("SOK")
-            self.send("SAY " + "<" + self.nickname + "> " + message)
 
         if data[0:3] == "MSG":
             dest, msg = rest.split(":", 1)
             print "message: " + dest + " " + msg
-            # TODO
-            self.send("MOK")
-            #self.send("MNO")
+            other = sessions.get(dest, None)
+            if other == None:
+                self.send("MNO")
+            else:
+                other.send("MSG " + "*" + self.nickname + "* " + msg)
+                self.send("MOK")
 
     def run(self):
         while True:
             data = self.csoc.recv(1024)
             if self.incoming_parser(data):
                 break
+        if self.nickname != "":
+            del sessions[self.nickname]
         print "client disconnected"
 
 while True:

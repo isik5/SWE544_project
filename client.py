@@ -7,13 +7,14 @@ import Queue
 import time
 
 class ReadThread (threading.Thread):
-    def __init__(self, name, csoc, threadQueue, screenQueue):
+    def __init__(self, name, csoc, threadQueue, screenQueue, app):
         threading.Thread.__init__(self)
         self.name = name
         self.csoc = csoc
         self.nickname = ""
         self.threadQueue = threadQueue
         self.screenQueue = screenQueue
+        self.app = app
 
     def show(self, data):
         screenQueue.put(data)
@@ -44,22 +45,24 @@ class ReadThread (threading.Thread):
             pass
 
         if data[0:3] == "MSG":
-            # TODO
-            print "<<nick>> " + rest
+            self.show(rest)
+
+        if data[0:3] == "MNO":
+            self.showInfo("Error: No such user")
 
         if data[0:3] == "SAY":
             self.show(rest)
 
         if data[0:3] == "LSA":
-            splitted = rest.split(":")
-            msg = "Registered nicks: "
-            for i in splitted:
-                msg += i + ","
-                msg = msg[:-1]
-            # TODO
-            self.showInfo(msg)
+            nicks = rest.split(":")
+            self.showInfo("Registered nicks: " + ", ".join(nicks))
             #self.app.cprint(msg)
-            print msg
+            self.app.userModel.clear()
+            for nick in nicks:
+                item = QStandardItem(nick)
+                self.app.userModel.appendRow(item)
+
+        # TODO: Report unhandled messages
 
     def run(self):
         while True:
@@ -130,6 +133,8 @@ class ClientDialog(QDialog):
 
         # The users' section
         self.userList = QListView()
+        self.userModel = QStandardItemModel(self.userList)
+        self.userList.setModel(self.userModel)
 
         # Connect the Go button to its callback
         self.send_button.clicked.connect(self.outgoing_parser)
@@ -166,11 +171,15 @@ class ClientDialog(QDialog):
         if len(data) == 0:
             return
         if data[0] == "/":
-            command, rest = data[1:].split(None, 1)
+            args = data[1:].split(None, 1)
+            command = args[0]
+            rest = None
+            if (len(args) > 1):
+                rest = args[1]
             if command == "nick":
                 self.threadQueue.put(str("USR " + rest))
             elif command == "list":
-                pass
+                self.threadQueue.put("LSQ")
             elif command == "quit":
                 pass
             elif command == "msg":
@@ -200,7 +209,7 @@ screenQueue = Queue.Queue()
 app = ClientDialog(sendQueue, screenQueue)
 
 # start threads
-rt = ReadThread("ReadThread", s, sendQueue, screenQueue)
+rt = ReadThread("ReadThread", s, sendQueue, screenQueue, app)
 rt.start()
 
 wt = WriteThread("WriteThread", s, sendQueue)
