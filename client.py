@@ -25,6 +25,8 @@ class ReadThread (threading.Thread):
         if len(data) == 0:
             return
 
+        data = data.strip()
+
         if len(data) > 3 and not data[3] == " ":
             print "Error in server message"
             print data

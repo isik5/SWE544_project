@@ -2,6 +2,7 @@
 
 import socket
 import threading
+import sys
 
 s = socket.socket()
 # https://stackoverflow.com/questions/4465959/python-errno-98-address-already-in-use
@@ -27,21 +28,23 @@ class ChatSession (threading.Thread):
         #self.screenQueue = screenQueue
 
     def send(self, data):
-        self.csoc.send(data)
+        self.csoc.send(data + "\n")
 
     def incoming_parser(self, data):
         if len(data) == 0:
             self.csoc.close()
             return True
 
+        data = data.strip()
+
         if len(data) > 3 and not data[3] == " ":
-            response = "ERR"
-            return self.send(response)
+            return self.send("ERR")
 
         rest = data[4:]
 
         if data[0:3] == "USR":
-            # TODO: Check/REJ
+            if sessions.has_key(rest):
+                return self.send("REJ " + rest)
             if self.nickname != "":
                 del sessions[self.nickname]
             self.nickname = rest
@@ -49,7 +52,7 @@ class ChatSession (threading.Thread):
             return self.send("HEL " + self.nickname)
 
         if data[0:3] == "QUI":
-            self.send("BYE")
+            self.send("BYE " + self.nickname)
             self.csoc.close()
             return True
 
@@ -89,8 +92,13 @@ class ChatSession (threading.Thread):
     def run(self):
         while True:
             data = self.csoc.recv(1024)
-            if self.incoming_parser(data):
-                break
+            try:
+                if self.incoming_parser(data):
+                    break
+            except:
+                # Catch-all error handling for robustness.
+                print "Unexpected error:", sys.exc_info()[0]
+                self.send("ERR")
         if self.nickname != "":
             del sessions[self.nickname]
         print "client disconnected"
@@ -98,8 +106,6 @@ class ChatSession (threading.Thread):
 while True:
     csoc, addr = s.accept()
     print 'Got connection from', addr
-    csoc.send('Thank you for connecting!')
-
     # start thread
     cs = ChatSession("ChatSession", csoc)
     cs.start()
